@@ -35,16 +35,16 @@ wt_mean = lambda x: np.average(x, weights=rumah.loc[x.index, "bobot"])
 rumah_milik = rumah.groupby("kepemilikan").agg(kepemilikan=("kepemilikan", "count"), bobot=("bobot", "sum"))
 rumah_milik.reset_index(drop=True).astype(int)
 
-# data yang menampilkan tingkat kempemilikikan rumah nasional
+# 1. data yang menampilkan tingkat kempemilikikan rumah nasional
 sns.barplot(x=rumah_milik["kepemilikan"].index, y=rumah_milik["bobot"])
 
 # perhitungan presentase
-a = rumah[rumah.status_milik == "bukan_milik_sendiri"][["bobot"]].sum().astype(int)
-b = rumah[rumah.status_milik == "milik_sendiri"][["bobot"]].sum().astype(int)
+a = rumah_milik["bobot"].loc[0]
+b = rumah_milik["bobot"].loc[1]
 prcntg = a/(a+b)*100
 print("Presentase dari rumah tangga yang tidak memiliki rumah keseluruhan: ", prcntg)
 
-# Perbandingan kepemilikan desa dan kota
+# 2. Perbandingan kepemilikan desa dan kota
 rumah_urban = rumah.groupby(["desa_kota", "kepemilikan"]).agg(desa_kota=("desa_kota", "count"),
                                                               kepemilikan=("kepemilikan", "count"),
                                                               bobot=("bobot", "sum"))
@@ -52,3 +52,34 @@ rumah_urban.astype(int)
 
 # Barplot untuk perbandingan desa_kota
 sns.barplot(x=rumah_urban["desa_kota"].index, y=rumah_urban["bobot"])
+
+
+# 3. perbandingan tingkat kepemilikan rumah di pulau jawa dan non-jawa
+def perov(x):
+    if x > 30 and x < 40:
+        return "jawa"
+    else:
+        return "non_jawa"
+
+
+rumah["pulau_jawa"] = rumah[["prov"]].applymap(perov)
+rumah_prov = rumah.groupby(["pulau_jawa", "kepemilikan"]).agg(pulau_jawa=("pulau_jawa", "count"),
+                                                              bobot=("bobot", "sum"))
+sns.barplot(x=rumah_prov["pulau_jawa"].index, y=rumah_prov["bobot"])
+
+# 4. Kualitas bangunan rumah secara sederhana (belum)
+
+# 5. korelasi antara pengeluaran dengan tingkat kepemilikan rumah
+rumah_bb = rumah.groupby(["status_milik"]).agg(exp=("exp_cap", wt_mean), bobot=("bobot", "sum"))
+
+# Log Pengeluaran per Kapita
+x_pce = rumah_bb["bobot"].index
+y_pce = np.log(rumah_bb["exp"])
+
+# Plot
+plt.scatter(x_pce, y_pce, alpha=0.4, c='red')
+plt.title('Pengeluaran per Kapita dan Status Kepemilikan Rumah')
+plt.xlabel('Log Per Capita Expenditure')
+plt.ylabel('status_milik')
+plt.rcParams['figure.figsize'] = [7, 7]
+plt.show()
